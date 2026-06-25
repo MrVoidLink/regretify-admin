@@ -1,0 +1,26 @@
+services:
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    pull_policy: build
+    image: regretify-admin:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3000}
+      HOSTNAME: ${HOSTNAME:-0.0.0.0}
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Regretify Admin}
+      NEXT_PUBLIC_CORE_API_BASE_URL: ${NEXT_PUBLIC_CORE_API_BASE_URL:-http://replace-in-portainer/api}
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - regretify_net
+
+networks:
+  regretify_net:
+    external: true
