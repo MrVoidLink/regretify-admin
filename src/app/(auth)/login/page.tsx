@@ -1,4 +1,14 @@
-export default function LoginPage() {
+import { redirect } from "next/navigation";
+import { LoginForm } from "@/components/auth/LoginForm";
+import { getAdminSession } from "@/lib/auth/session";
+
+export default async function LoginPage() {
+  const session = await getAdminSession();
+
+  if (session) {
+    redirect("/dashboard");
+  }
+
   return (
     <section className="w-full max-w-md rounded-[1.8rem] border border-[color:var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[0_24px_56px_rgba(24,24,27,0.08)] backdrop-blur-sm">
       <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[var(--color-brand)]">
@@ -8,23 +18,10 @@ export default function LoginPage() {
         Sign in to Regretify Admin
       </h1>
       <p className="mt-3 text-[0.95rem] leading-7 text-[var(--color-text-soft)]">
-        Authentication wiring is not connected yet. This route is the placeholder entry for the internal dashboard flow.
+        This access layer is intentionally narrow. Use the seeded admin account from core to enter the dashboard.
       </p>
 
-      <div className="mt-6 grid gap-3">
-        <div className="rounded-[1rem] border border-[color:var(--color-border)] bg-white px-4 py-3 text-[0.9rem] text-[var(--color-text-soft)]">
-          admin@regretify.app
-        </div>
-        <div className="rounded-[1rem] border border-[color:var(--color-border)] bg-white px-4 py-3 text-[0.9rem] text-[var(--color-text-soft)]">
-          Password
-        </div>
-        <button
-          type="button"
-          className="inline-flex min-h-11 items-center justify-center rounded-[1rem] bg-[linear-gradient(180deg,var(--color-brand)_0%,var(--color-brand-strong)_100%)] px-4 text-[0.9rem] font-semibold text-white shadow-[0_14px_28px_rgba(111,67,255,0.24)]"
-        >
-          Continue
-        </button>
-      </div>
+      <LoginForm defaultEmail="" />
     </section>
   );
 }
