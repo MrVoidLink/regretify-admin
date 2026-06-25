@@ -11,6 +11,8 @@ export function AdminShell({
   children: ReactNode;
   session: AdminProfile;
 }) {
+  const adminDisplayName = session.email.split("@")[0];
+
   return (
     <div className="min-h-screen px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
       <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-[96rem] gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
@@ -19,23 +21,12 @@ export function AdminShell({
             <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[var(--color-brand)]">
               Regretify
             </p>
-            <h1 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.05em] text-[var(--color-text)]">
-              Admin
+            <h1 className="mt-2 text-[1.2rem] font-semibold tracking-[-0.05em] text-[var(--color-text)]">
+              {adminDisplayName}
             </h1>
-            <p className="mt-2 text-[0.82rem] leading-6 text-[var(--color-text-soft)]">
-              Internal operating surface for content, assets, monetization, and settings.
-            </p>
           </div>
 
-          <div className="mt-4 rounded-[1.2rem] border border-[color:var(--color-border)] bg-white/80 px-4 py-3">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-soft)]">
-              Signed In
-            </p>
-            <p className="mt-2 text-[0.92rem] font-medium text-[var(--color-text)]">{session.email}</p>
-            <p className="mt-1 text-[0.8rem] capitalize text-[var(--color-text-soft)]">{session.role}</p>
-          </div>
-
-          <nav className="mt-6 grid gap-2">
+          <nav className="mt-4 grid gap-2">
             {adminNavigationItems.map((item) => (
               <Link
                 key={item.href}
