@@ -6,6 +6,31 @@ import type { AdminProfile } from "@/types/admin";
 const SESSION_COOKIE_NAME = "regretify_admin_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 12;
 
+function isAdminAuthBypassEnabled() {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.REGRETIFY_ADMIN_AUTH_BYPASS?.trim().toLowerCase() === "true"
+  );
+}
+
+function getBypassAdminSession(): AdminProfile {
+  const timestamp = new Date().toISOString();
+
+  return {
+    id: "dev-admin-bypass",
+    email: "dev-admin@regretify.local",
+    role: "admin",
+    status: "active",
+    username: "devadmin",
+    displayName: "Dev Admin",
+    avatarUrl: null,
+    avatarAssetKey: null,
+    authorRole: "Your daily dose of crypto news, charts, and chaos.",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
 export async function createAdminSession(input: { accessToken: string }) {
   const cookieStore = await cookies();
 
@@ -29,6 +54,10 @@ export async function getAdminAccessToken() {
 }
 
 export async function getAdminSession(): Promise<AdminProfile | null> {
+  if (isAdminAuthBypassEnabled()) {
+    return getBypassAdminSession();
+  }
+
   const token = await getAdminAccessToken();
 
   if (!token) {
