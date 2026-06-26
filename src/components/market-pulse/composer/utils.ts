@@ -30,7 +30,7 @@ function slugifyHeading(value: string) {
 }
 
 export function extractOutlineLinksFromBodyHtml(bodyHtml: string): StoryOutlineLink[] {
-  const headingRegex = /<h2\b[^>]*>(.*?)<\/h2>/gis;
+  const headingRegex = /<h2\b[^>]*>([\s\S]*?)<\/h2>/gi;
   const links: StoryOutlineLink[] = [{ href: "#story-overview", label: "Market overview" }];
   const usedHrefs = new Set(links.map((link) => link.href));
 
