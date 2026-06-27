@@ -10,12 +10,12 @@ export function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-[1.5rem] border border-[color:var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(249,246,255,0.94)_100%)] p-5 shadow-[0_16px_38px_rgba(24,24,27,0.04)]">
+    <section className="min-w-0 overflow-hidden rounded-[1.5rem] border border-[color:var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(249,246,255,0.94)_100%)] p-5 shadow-[0_16px_38px_rgba(24,24,27,0.04)]">
       <div className="flex flex-col gap-1.5">
         <h3 className="text-[1.02rem] font-semibold text-[var(--color-text)]">{title}</h3>
         <p className="text-[0.84rem] leading-6 text-[var(--color-text-soft)]">{description}</p>
       </div>
-      <div className="mt-5">{children}</div>
+      <div className="mt-5 min-w-0">{children}</div>
     </section>
   );
 }
@@ -28,7 +28,7 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <span className="text-[0.82rem] font-medium text-[var(--color-text-soft)]">{label}</span>
       {children}
     </div>
@@ -36,11 +36,11 @@ export function Field({
 }
 
 export function textInputClassName() {
-  return "min-h-11 rounded-[1rem] border border-[color:var(--color-border)] bg-white px-4 text-[0.92rem] text-[var(--color-text)] outline-none transition-colors placeholder:text-zinc-400 focus:border-[var(--color-brand)]";
+  return "min-h-11 w-full min-w-0 rounded-[1rem] border border-[color:var(--color-border)] bg-white px-4 text-[0.92rem] text-[var(--color-text)] outline-none transition-colors placeholder:text-zinc-400 focus:border-[var(--color-brand)]";
 }
 
 export function textareaClassName() {
-  return "min-h-28 rounded-[1rem] border border-[color:var(--color-border)] bg-white px-4 py-3 text-[0.92rem] leading-6 text-[var(--color-text)] outline-none transition-colors placeholder:text-zinc-400 focus:border-[var(--color-brand)]";
+  return "min-h-28 w-full min-w-0 rounded-[1rem] border border-[color:var(--color-border)] bg-white px-4 py-3 text-[0.92rem] leading-6 text-[var(--color-text)] outline-none transition-colors placeholder:text-zinc-400 focus:border-[var(--color-brand)]";
 }
 
 export function EyeIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {

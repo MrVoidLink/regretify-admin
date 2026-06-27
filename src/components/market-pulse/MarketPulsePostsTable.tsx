@@ -205,10 +205,10 @@ export function MarketPulsePostsTable() {
     : 0;
 
   return (
-    <section className="rounded-[1.6rem] border border-[color:var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(249,246,255,0.94)_100%)] p-4 shadow-[0_16px_38px_rgba(24,24,27,0.04)] sm:p-5">
-      <div className="grid gap-4 rounded-[1.3rem] border border-[color:var(--color-border)] bg-white/80 p-4">
+    <section className="min-w-0 overflow-hidden rounded-[1.6rem] border border-[color:var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(249,246,255,0.94)_100%)] p-4 shadow-[0_16px_38px_rgba(24,24,27,0.04)] sm:p-5">
+      <div className="grid min-w-0 gap-4 rounded-[1.3rem] border border-[color:var(--color-border)] bg-white/80 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-[0.98rem] font-semibold text-[var(--color-text)]">Filters and sorting</p>
             <p className="mt-1 text-[0.84rem] text-[var(--color-text-soft)]">
               Split published stories from saved drafts, then sort by performance or publish date.
@@ -228,7 +228,7 @@ export function MarketPulsePostsTable() {
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[15rem_15rem_minmax(0,1fr)_minmax(0,1fr)_auto]">
+        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-[15rem_15rem_minmax(0,1fr)_minmax(0,1fr)_auto]">
           <div className="grid gap-2">
             <span className="text-[0.8rem] font-medium text-[var(--color-text-soft)]">Status</span>
             <select
@@ -291,7 +291,7 @@ export function MarketPulsePostsTable() {
             />
           </div>
 
-          <div className="flex items-end">
+          <div className="flex items-end md:col-span-2 2xl:col-span-1">
             <button type="button" onClick={resetFilters} className={actionButtonClassName("neutral")}>
               Reset
             </button>
@@ -299,8 +299,8 @@ export function MarketPulsePostsTable() {
         </div>
       </div>
 
-      <div className="mt-4 overflow-x-auto">
-        <table className="min-w-[88rem] w-full border-separate border-spacing-y-3">
+      <div className="mt-4 max-w-full overflow-x-auto">
+        <table className="w-full min-w-[72rem] border-separate border-spacing-y-3">
           <thead>
             <tr className="text-left text-[0.76rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-soft)]">
               <th className="px-4 pb-2">Story</th>
@@ -336,7 +336,7 @@ export function MarketPulsePostsTable() {
               items.map((item) => (
                 <tr key={item.id} className="bg-white/86 shadow-[0_10px_24px_rgba(24,24,27,0.04)]">
                   <td className="rounded-l-[1.2rem] border border-r-0 border-[color:var(--color-border)] px-4 py-4 align-top">
-                    <div className="max-w-[28rem]">
+                    <div className="max-w-[22rem]">
                       <p className="text-[0.96rem] font-semibold leading-6 text-[var(--color-text)]">
                         {item.title}
                       </p>
@@ -347,7 +347,7 @@ export function MarketPulsePostsTable() {
                   </td>
 
                   <td className="border border-l-0 border-r-0 border-[color:var(--color-border)] px-4 py-4 align-top">
-                    <div className="min-w-[11rem]">
+                    <div className="min-w-[9.5rem]">
                       <p className="text-[0.88rem] font-medium text-[var(--color-text)]">
                         {formatDateTimeLabel(item.createdAt)}
                       </p>
@@ -356,7 +356,7 @@ export function MarketPulsePostsTable() {
                   </td>
 
                   <td className="border border-l-0 border-r-0 border-[color:var(--color-border)] px-4 py-4 align-top">
-                    <div className="min-w-[11rem]">
+                    <div className="min-w-[9.5rem]">
                       {item.publishedAt ? (
                         <>
                           <p className="text-[0.88rem] font-medium text-[var(--color-text)]">
@@ -390,7 +390,7 @@ export function MarketPulsePostsTable() {
                   </td>
 
                   <td className="rounded-r-[1.2rem] border border-l-0 border-[color:var(--color-border)] px-4 py-4 align-top">
-                    <div className="flex min-w-[10rem] items-center gap-2">
+                    <div className="flex min-w-[8.5rem] flex-wrap items-center gap-2">
                       <Link
                         href={`/market-pulse/create?post=${item.id}`}
                         className={actionButtonClassName("neutral")}

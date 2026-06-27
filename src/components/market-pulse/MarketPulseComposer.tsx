@@ -74,6 +74,8 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
   const storyHeroInputRef = useRef<HTMLInputElement | null>(null);
   const [operatorAccount] = useOperatorAccountProfile(admin);
   const operator = buildOperatorPreviewProfile(operatorAccount);
+  const fileInputClassName =
+    "min-h-11 w-full min-w-0 rounded-[1rem] border border-[color:var(--color-border)] bg-white px-4 py-3 text-[0.9rem] text-[var(--color-text)] file:mr-3 file:rounded-full file:border-0 file:bg-[var(--color-brand-soft)] file:px-3.5 file:py-2 file:text-[0.82rem] file:font-medium file:text-[var(--color-brand-strong)]";
 
   useEffect(() => {
     if (!postId) {
@@ -351,8 +353,8 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
 
   return (
     <section className="space-y-4">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_28rem]">
-        <div className="space-y-4">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
+        <div className="min-w-0 space-y-4">
           <SectionCard
             title="Feed Preview Fields"
             description="Only the fields that directly shape the live Market Pulse card."
@@ -416,7 +418,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/avif"
                   onChange={handleHeroImageChange}
-                  className="min-h-11 rounded-[1rem] border border-[color:var(--color-border)] bg-white px-4 py-3 text-[0.9rem] text-[var(--color-text)] file:mr-3 file:rounded-full file:border-0 file:bg-[var(--color-brand-soft)] file:px-3.5 file:py-2 file:text-[0.82rem] file:font-medium file:text-[var(--color-brand-strong)]"
+                  className={fileInputClassName}
                 />
               </Field>
 
@@ -460,7 +462,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
           </SectionCard>
         </div>
 
-        <div className="space-y-4 xl:sticky xl:top-6">
+        <div className="min-w-0 space-y-4 xl:sticky xl:top-6">
           <SectionCard
             title="Live Feed Preview"
             description="This matches the public feed card much more closely now."
@@ -507,7 +509,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/avif"
                 onChange={handleStoryHeroImageChange}
-                className="min-h-11 rounded-[1rem] border border-[color:var(--color-border)] bg-white px-4 py-3 text-[0.9rem] text-[var(--color-text)] file:mr-3 file:rounded-full file:border-0 file:bg-[var(--color-brand-soft)] file:px-3.5 file:py-2 file:text-[0.82rem] file:font-medium file:text-[var(--color-brand-strong)]"
+                className={fileInputClassName}
               />
               <div className="rounded-[1.2rem] border border-dashed border-[color:var(--color-border)] bg-white/80 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
