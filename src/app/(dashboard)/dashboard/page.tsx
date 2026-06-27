@@ -1,6 +1,15 @@
+import { redirect } from "next/navigation";
 import { AdminPageIntro } from "@/components/ui/AdminPageIntro";
+import { isSuperAdminRole } from "@/lib/auth/roles";
+import { requireAdminSession } from "@/lib/auth/session";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await requireAdminSession();
+
+  if (!isSuperAdminRole(session.role)) {
+    redirect("/market-pulse");
+  }
+
   return (
     <div className="grid gap-4">
       <AdminPageIntro

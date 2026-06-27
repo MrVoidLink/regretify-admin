@@ -1,6 +1,9 @@
 import { AdminPageIntro } from "@/components/ui/AdminPageIntro";
+import { requireSuperAdminSession } from "@/lib/auth/session";
 
-export default function AdsAdminPage() {
+export default async function AdsAdminPage() {
+  await requireSuperAdminSession();
+
   return (
     <AdminPageIntro
       eyebrow="Ads"

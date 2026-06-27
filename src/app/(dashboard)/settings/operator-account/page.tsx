@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { OperatorAccountSettings } from "@/components/settings/OperatorAccountSettings";
 import { AdminPageIntro } from "@/components/ui/AdminPageIntro";
-import { getAdminSession } from "@/lib/auth/session";
+import { requireSuperAdminSession } from "@/lib/auth/session";
 
 export default async function OperatorAccountSettingsPage() {
-  const admin = await getAdminSession();
+  const admin = await requireSuperAdminSession();
 
   return (
     <div className="grid gap-4">

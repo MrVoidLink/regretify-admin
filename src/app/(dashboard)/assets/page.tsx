@@ -1,6 +1,9 @@
 import { AdminPageIntro } from "@/components/ui/AdminPageIntro";
+import { requireSuperAdminSession } from "@/lib/auth/session";
 
-export default function AssetsAdminPage() {
+export default async function AssetsAdminPage() {
+  await requireSuperAdminSession();
+
   return (
     <AdminPageIntro
       eyebrow="Assets"

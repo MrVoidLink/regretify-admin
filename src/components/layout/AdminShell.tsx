@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { logoutAction } from "@/app/(dashboard)/actions";
 import { useOperatorAccountProfile } from "@/hooks/useOperatorAccountProfile";
-import { adminNavigationItems } from "@/lib/config/adminNavigation";
+import { getAdminNavigationItems } from "@/lib/config/adminNavigation";
 import { buildOperatorPreviewProfile } from "@/lib/operator-profile";
 import type { AdminProfile } from "@/types/admin";
 
@@ -88,6 +88,7 @@ export function AdminShell({
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [operatorAccount] = useOperatorAccountProfile(session);
   const operator = buildOperatorPreviewProfile(operatorAccount);
+  const navigationItems = getAdminNavigationItems(session.role);
   const adminDisplayName = operator.displayName;
   const adminInitial = operator.initials.charAt(0)?.toUpperCase() ?? "R";
 
@@ -191,7 +192,7 @@ export function AdminShell({
         </div>
 
         <nav className="mt-4 grid gap-2">
-          {adminNavigationItems.map((item) => {
+          {navigationItems.map((item) => {
             const isActive = isActiveRoute(pathname, item.href);
             const isGroupOpen =
               pathname.startsWith(item.href) || openGroups[item.href] === true;

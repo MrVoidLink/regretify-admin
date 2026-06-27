@@ -345,6 +345,7 @@ export function AdminUsersManager({ currentAdmin }: { currentAdmin: AdminProfile
                   };
                   const isCurrentUser = user.id === currentAdmin.id;
                   const isBusy = isSavingRowId === user.id;
+                  const canManageUser = !isCurrentUser;
 
                   return (
                     <tr key={user.id} className="bg-white/86 shadow-[0_10px_24px_rgba(24,24,27,0.04)]">
@@ -369,6 +370,7 @@ export function AdminUsersManager({ currentAdmin }: { currentAdmin: AdminProfile
                         <select
                           value={draft.role}
                           onChange={(event) => setRowDraft(user.id, { role: event.target.value })}
+                          disabled={!canManageUser}
                           className={textInputClassName()}
                         >
                           {createRoleOptions.map((option) => (
@@ -386,6 +388,7 @@ export function AdminUsersManager({ currentAdmin }: { currentAdmin: AdminProfile
                         <select
                           value={draft.status}
                           onChange={(event) => setRowDraft(user.id, { status: event.target.value })}
+                          disabled={!canManageUser}
                           className={textInputClassName()}
                         >
                           {statusOptions.map((option) => (
@@ -415,24 +418,30 @@ export function AdminUsersManager({ currentAdmin }: { currentAdmin: AdminProfile
                       </td>
 
                       <td className="rounded-r-[1.2rem] border border-l-0 border-[color:var(--color-border)] px-4 py-4 align-top">
-                        <div className="flex min-w-[14rem] flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => void saveRow(user.id)}
-                            disabled={isBusy}
-                            className="inline-flex min-h-9 items-center justify-center rounded-full border border-[color:var(--color-border)] bg-white px-3.5 text-[0.8rem] font-medium text-[var(--color-text)] transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {isBusy ? "Saving..." : "Save changes"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void resetPassword(user)}
-                            disabled={isBusy}
-                            className="inline-flex min-h-9 items-center justify-center rounded-full border border-[color:var(--color-border)] bg-white px-3.5 text-[0.8rem] font-medium text-[var(--color-text)] transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            Reset password
-                          </button>
-                        </div>
+                        {canManageUser ? (
+                          <div className="flex min-w-[14rem] flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void saveRow(user.id)}
+                              disabled={isBusy}
+                              className="inline-flex min-h-9 items-center justify-center rounded-full border border-[color:var(--color-border)] bg-white px-3.5 text-[0.8rem] font-medium text-[var(--color-text)] transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {isBusy ? "Saving..." : "Save changes"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void resetPassword(user)}
+                              disabled={isBusy}
+                              className="inline-flex min-h-9 items-center justify-center rounded-full border border-[color:var(--color-border)] bg-white px-3.5 text-[0.8rem] font-medium text-[var(--color-text)] transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Reset password
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-[0.8rem] leading-6 text-[var(--color-text-soft)]">
+                            Your own role and account status are locked here.
+                          </p>
+                        )}
                       </td>
                     </tr>
                   );

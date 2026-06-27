@@ -1,3 +1,5 @@
+import { isSuperAdminRole } from "@/lib/auth/roles";
+
 export const adminNavigationItems = [
   { label: "Dashboard", href: "/dashboard" },
   {
@@ -14,3 +16,11 @@ export const adminNavigationItems = [
   { label: "Sponsors", href: "/sponsors" },
   { label: "Settings", href: "/settings" },
 ];
+
+export function getAdminNavigationItems(role: string) {
+  if (isSuperAdminRole(role)) {
+    return adminNavigationItems;
+  }
+
+  return adminNavigationItems.filter((item) => item.href === "/market-pulse");
+}
