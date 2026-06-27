@@ -12,3 +12,9 @@ export function formatAdminRoleLabel(role: string) {
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(" ");
 }
+
+export function getDefaultAuthorRoleForRole(role: string | null | undefined) {
+  return isSuperAdminRole(role)
+    ? "Regretify platform administrator."
+    : "Regretify market pulse editor.";
+}

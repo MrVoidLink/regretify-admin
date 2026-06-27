@@ -1,4 +1,5 @@
 import type { OperatorPreviewProfile } from "@/components/market-pulse/composer/types";
+import { getDefaultAuthorRoleForRole } from "@/lib/auth/roles";
 import type { AdminProfile } from "@/types/admin";
 
 export const OPERATOR_PROFILE_STORAGE_KEY = "regretify_operator_profile";
@@ -13,7 +14,7 @@ export type OperatorAccountProfile = {
 };
 
 type StoredOperatorAccountProfile = Partial<
-  Pick<OperatorAccountProfile, "username" | "displayName" | "authorRole" | "avatarSrc">
+  Pick<OperatorAccountProfile, "username" | "displayName" | "avatarSrc">
 >;
 
 function normalizeText(value: string | null | undefined) {
@@ -63,8 +64,7 @@ export function getDefaultOperatorAccountProfile(
   const username = normalizeText(admin?.username) || email.split("@")[0] || "operator";
   const displayName =
     normalizeText(admin?.displayName) || formatDisplayNameFromEmail(email) || "Operator";
-  const authorRole =
-    normalizeText(admin?.authorRole) || formatRoleLabel(admin?.role ?? "operator");
+  const authorRole = getDefaultAuthorRoleForRole(admin?.role);
 
   return {
     email,
@@ -96,7 +96,7 @@ export function loadOperatorAccountProfile(
     ...defaults,
     username: normalizeText(parsed.username) || defaults.username,
     displayName: normalizeText(parsed.displayName) || defaults.displayName,
-    authorRole: normalizeText(parsed.authorRole) || defaults.authorRole,
+    authorRole: defaults.authorRole,
     avatarSrc: normalizeText(parsed.avatarSrc) || defaults.avatarSrc,
   };
 }
@@ -111,7 +111,6 @@ export function saveOperatorAccountProfile(profile: OperatorAccountProfile) {
     JSON.stringify({
       username: profile.username,
       displayName: profile.displayName,
-      authorRole: profile.authorRole,
       avatarSrc: profile.avatarSrc,
     } satisfies StoredOperatorAccountProfile),
   );

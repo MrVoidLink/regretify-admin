@@ -63,7 +63,6 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
       body: JSON.stringify({
         username: draft.username,
         displayName: draft.displayName,
-        authorRole: draft.authorRole,
       }),
     });
 
@@ -76,7 +75,7 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
 
     saveOperatorAccountProfile(draft);
     setSaveState("saved");
-    setSaveMessage("Profile saved. Username, display name, and author line are now persisted.");
+    setSaveMessage("Profile saved. Username and display name are now persisted.");
   }
 
   function handleReset() {
@@ -96,7 +95,7 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_25rem]">
       <SectionCard
         title="Operator account profile"
-        description="Email stays locked to the admin account. Username, author name, avatar, and the post-page role line are controlled here."
+        description="Email stays locked to the admin account. Username, display name, avatar, and the post-page role line are managed here."
       >
         <div className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -124,13 +123,8 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
               />
             </Field>
 
-            <Field label="Author line">
-              <input
-                value={draft.authorRole}
-                onChange={(event) => setField("authorRole", event.target.value)}
-                className={textInputClassName()}
-                placeholder="Your daily dose of crypto news, charts, and chaos."
-              />
+            <Field label="Role line">
+              <input value={draft.authorRole} disabled className={`${textInputClassName()} opacity-70`} />
             </Field>
           </div>
 
@@ -199,7 +193,7 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
 
           <Field label="Why this structure">
             <textarea
-              value="Recommended backend shape: keep email and password on admin_users, then add username, display_name, author_role, and avatar_asset_key so querying the active operator is simple."
+              value="Recommended backend shape: keep email and password on admin_users, then add username, display_name, role, and avatar_asset_key so querying the active operator is simple."
               readOnly
               className={`${textareaClassName()} min-h-24 opacity-75`}
             />
