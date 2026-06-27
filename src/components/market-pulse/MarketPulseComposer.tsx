@@ -64,6 +64,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [successModalMessage, setSuccessModalMessage] = useState("");
   const [uploadedHeroImageSrc, setUploadedHeroImageSrc] = useState<string | null>(null);
   const [uploadedHeroImageName, setUploadedHeroImageName] = useState("Default hero artwork");
   const [uploadedStoryHeroImageSrc, setUploadedStoryHeroImageSrc] = useState<string | null>(null);
@@ -118,6 +119,19 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
   }, [postId]);
 
   useEffect(() => {
+    if (!successModalMessage) {
+      return;
+    }
+
+    const redirectTimeout = window.setTimeout(() => {
+      router.push("/market-pulse/posts");
+      router.refresh();
+    }, 1200);
+
+    return () => window.clearTimeout(redirectTimeout);
+  }, [router, successModalMessage]);
+
+  useEffect(() => {
     return () => {
       if (uploadedHeroImageSrc?.startsWith("blob:")) {
         URL.revokeObjectURL(uploadedHeroImageSrc);
@@ -133,6 +147,13 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
     setDraft((current) => ({ ...current, [field]: value }));
     setSubmitMessage("");
     setSubmitError("");
+    setSuccessModalMessage("");
+  }
+
+  function showSuccessAndRedirect(message: string) {
+    setSubmitMessage("");
+    setSubmitError("");
+    setSuccessModalMessage(message);
   }
 
   async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
@@ -186,11 +207,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
           });
 
       setCurrentPostId(savedPost.id);
-      setSubmitMessage("Draft saved.");
-
-      if (!currentPostId) {
-        router.replace(`/market-pulse/create?post=${savedPost.id}`);
-      }
+      showSuccessAndRedirect("Draft saved successfully.");
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Could not save draft.");
     } finally {
@@ -249,12 +266,9 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
         );
 
         setCurrentPostId(publishedPost.id);
-        router.replace(`/market-pulse/create?post=${publishedPost.id}`);
       }
 
-      setSubmitMessage("Post published.");
-      router.push("/market-pulse/posts");
-      router.refresh();
+      showSuccessAndRedirect("Post published successfully.");
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Could not publish post.");
     } finally {
@@ -353,6 +367,34 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
 
   return (
     <section className="space-y-4">
+      {successModalMessage ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(10,10,16,0.45)] px-4">
+          <div className="w-full max-w-md rounded-[1.6rem] border border-[color:var(--color-border)] bg-white p-6 shadow-[0_24px_60px_rgba(24,24,27,0.18)]">
+            <p className="text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[var(--color-brand-strong)]">
+              Success
+            </p>
+            <h3 className="mt-3 text-[1.45rem] font-semibold text-[var(--color-text)]">
+              {successModalMessage}
+            </h3>
+            <p className="mt-2 text-[0.92rem] leading-7 text-[var(--color-text-soft)]">
+              Redirecting to created posts so you can keep managing this story there.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  router.push("/market-pulse/posts");
+                  router.refresh();
+                }}
+                className="inline-flex min-h-11 items-center rounded-full bg-[linear-gradient(180deg,var(--color-brand)_0%,var(--color-brand-strong)_100%)] px-5 text-[0.92rem] font-semibold text-white shadow-[0_14px_26px_rgba(90,40,223,0.24)] transition-transform hover:-translate-y-0.5"
+              >
+                Go to posts now
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
         <div className="min-w-0 space-y-4">
           <SectionCard

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { textInputClassName } from "@/components/market-pulse/composer/shared";
 
 type EditorialPostStatus = "draft" | "published";
@@ -60,7 +60,7 @@ const sortOptions: Array<{ value: SortValue; label: string }> = [
   { value: "oldest-published", label: "Oldest published" },
 ];
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 50;
 
 function formatMetricCount(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -87,15 +87,20 @@ function statusClassName(status: EditorialPostStatus) {
   return status === "published" ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-700";
 }
 
-function actionButtonClassName(tone: "neutral" | "danger") {
+function actionButtonClassName(tone: "neutral" | "danger" | "accent") {
   if (tone === "danger") {
     return "inline-flex min-h-9 items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-3.5 text-[0.8rem] font-medium text-rose-600 transition-colors hover:bg-rose-100";
+  }
+
+  if (tone === "accent") {
+    return "inline-flex min-h-9 items-center justify-center rounded-full border border-[var(--color-brand-border)] bg-[var(--color-brand-soft)] px-3.5 text-[0.8rem] font-medium text-[var(--color-brand-strong)] transition-colors hover:bg-[var(--color-brand-soft)]/80";
   }
 
   return "inline-flex min-h-9 items-center justify-center rounded-full border border-[color:var(--color-border)] bg-white px-3.5 text-[0.8rem] font-medium text-[var(--color-text)] transition-colors hover:bg-zinc-50";
 }
 
 export function MarketPulsePostsTable() {
+  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortValue, setSortValue] = useState<SortValue>("newest-created");
   const [publishedFrom, setPublishedFrom] = useState("");
@@ -103,14 +108,22 @@ export function MarketPulsePostsTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [activeActionKey, setActiveActionKey] = useState("");
   const [postsResponse, setPostsResponse] = useState<MarketPulsePostsResponse | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const deferredSearchTerm = useDeferredValue(searchTerm);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
     params.set("page", String(currentPage));
     params.set("limit", String(ITEMS_PER_PAGE));
     params.set("sort", sortValue);
+    const trimmedSearch = deferredSearchTerm.trim();
+
+    if (trimmedSearch) {
+      params.set("search", trimmedSearch);
+    }
 
     if (statusFilter !== "all") {
       params.set("status", statusFilter);
@@ -125,7 +138,7 @@ export function MarketPulsePostsTable() {
     }
 
     return params.toString();
-  }, [currentPage, publishedFrom, publishedTo, sortValue, statusFilter]);
+  }, [currentPage, deferredSearchTerm, publishedFrom, publishedTo, sortValue, statusFilter]);
 
   useEffect(() => {
     let isActive = true;
@@ -166,11 +179,60 @@ export function MarketPulsePostsTable() {
   }, [queryString, reloadKey]);
 
   function resetFilters() {
+    setSearchTerm("");
     setStatusFilter("all");
     setSortValue("newest-created");
     setPublishedFrom("");
     setPublishedTo("");
     setCurrentPage(1);
+  }
+
+  async function publishPost(postId: string) {
+    setActiveActionKey(`${postId}:publish`);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await fetch(`/api/admin/market-pulse/posts/${postId}/publish`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { message?: string; error?: string } | null;
+        throw new Error(payload?.message ?? payload?.error ?? "Could not publish post.");
+      }
+
+      setSuccessMessage("Post published successfully.");
+      setReloadKey((current) => current + 1);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Could not publish post.");
+    } finally {
+      setActiveActionKey("");
+    }
+  }
+
+  async function unpublishPost(postId: string) {
+    setActiveActionKey(`${postId}:unpublish`);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await fetch(`/api/admin/market-pulse/posts/${postId}/unpublish`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { message?: string; error?: string } | null;
+        throw new Error(payload?.message ?? payload?.error ?? "Could not move post back to draft.");
+      }
+
+      setSuccessMessage("Post moved back to draft.");
+      setReloadKey((current) => current + 1);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Could not move post back to draft.");
+    } finally {
+      setActiveActionKey("");
+    }
   }
 
   async function deletePost(postId: string, title: string) {
@@ -180,19 +242,28 @@ export function MarketPulsePostsTable() {
       return;
     }
 
-    const response = await fetch(`/api/admin/market-pulse/posts/${postId}`, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { message?: string; error?: string } | null;
-      setErrorMessage(payload?.message ?? payload?.error ?? "Could not delete post.");
-      return;
-    }
-
-    setCurrentPage(1);
+    setActiveActionKey(`${postId}:delete`);
     setErrorMessage("");
-    setReloadKey((current) => current + 1);
+    setSuccessMessage("");
+
+    try {
+      const response = await fetch(`/api/admin/market-pulse/posts/${postId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { message?: string; error?: string } | null;
+        throw new Error(payload?.message ?? payload?.error ?? "Could not delete post.");
+      }
+
+      setCurrentPage(1);
+      setSuccessMessage("Post deleted successfully.");
+      setReloadKey((current) => current + 1);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Could not delete post.");
+    } finally {
+      setActiveActionKey("");
+    }
   }
 
   const items = postsResponse?.items ?? [];
@@ -203,6 +274,16 @@ export function MarketPulsePostsTable() {
   const showingTo = pagination?.total
     ? Math.min(pagination.page * pagination.limit, pagination.total)
     : 0;
+  const visiblePageNumbers = useMemo(() => {
+    if (!totalPages) {
+      return [];
+    }
+
+    const start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages, currentPage + 2);
+
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  }, [currentPage, totalPages]);
 
   return (
     <section className="min-w-0 overflow-hidden rounded-[1.6rem] border border-[color:var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(249,246,255,0.94)_100%)] p-4 shadow-[0_16px_38px_rgba(24,24,27,0.04)] sm:p-5">
@@ -228,7 +309,21 @@ export function MarketPulsePostsTable() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-[15rem_15rem_minmax(0,1fr)_minmax(0,1fr)_auto]">
+        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-[minmax(0,1.2fr)_15rem_15rem_minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <div className="grid gap-2 md:col-span-2 2xl:col-span-1">
+            <span className="text-[0.8rem] font-medium text-[var(--color-text-soft)]">Search</span>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => {
+                setSearchTerm(event.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Search title, slug, badge, category, or author"
+              className={textInputClassName()}
+            />
+          </div>
+
           <div className="grid gap-2">
             <span className="text-[0.8rem] font-medium text-[var(--color-text-soft)]">Status</span>
             <select
@@ -297,6 +392,13 @@ export function MarketPulsePostsTable() {
             </button>
           </div>
         </div>
+
+        {successMessage ? (
+          <p className="text-[0.84rem] font-medium text-emerald-700">{successMessage}</p>
+        ) : null}
+        {errorMessage ? (
+          <p className="text-[0.84rem] font-medium text-rose-600">{errorMessage}</p>
+        ) : null}
       </div>
 
       <div className="mt-4 max-w-full overflow-x-auto">
@@ -323,7 +425,7 @@ export function MarketPulsePostsTable() {
                   Loading posts...
                 </td>
               </tr>
-            ) : errorMessage ? (
+            ) : errorMessage && !items.length ? (
               <tr className="bg-white/86 shadow-[0_10px_24px_rgba(24,24,27,0.04)]">
                 <td
                   colSpan={7}
@@ -391,6 +493,25 @@ export function MarketPulsePostsTable() {
 
                   <td className="rounded-r-[1.2rem] border border-l-0 border-[color:var(--color-border)] px-4 py-4 align-top">
                     <div className="flex min-w-[8.5rem] flex-wrap items-center gap-2">
+                      {item.status === "draft" ? (
+                        <button
+                          type="button"
+                          onClick={() => void publishPost(item.id)}
+                          disabled={Boolean(activeActionKey)}
+                          className={actionButtonClassName("accent")}
+                        >
+                          {activeActionKey === `${item.id}:publish` ? "Publishing..." : "Publish"}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => void unpublishPost(item.id)}
+                          disabled={Boolean(activeActionKey)}
+                          className={actionButtonClassName("neutral")}
+                        >
+                          {activeActionKey === `${item.id}:unpublish` ? "Moving..." : "Move to draft"}
+                        </button>
+                      )}
                       <Link
                         href={`/market-pulse/create?post=${item.id}`}
                         className={actionButtonClassName("neutral")}
@@ -400,9 +521,10 @@ export function MarketPulsePostsTable() {
                       <button
                         type="button"
                         onClick={() => void deletePost(item.id, item.title)}
+                        disabled={Boolean(activeActionKey)}
                         className={actionButtonClassName("danger")}
                       >
-                        Delete
+                        {activeActionKey === `${item.id}:delete` ? "Deleting..." : "Delete"}
                       </button>
                     </div>
                   </td>
@@ -418,7 +540,9 @@ export function MarketPulsePostsTable() {
                     No posts matched these filters
                   </p>
                   <p className="mt-2 text-[0.84rem] text-[var(--color-text-soft)]">
-                    Change the status, sort, or publish date range to see more results.
+                    {deferredSearchTerm.trim()
+                      ? `No results for "${deferredSearchTerm.trim()}". Change the search, status, sort, or publish date range.`
+                      : "Change the status, sort, or publish date range to see more results."}
                   </p>
                 </td>
               </tr>
@@ -442,7 +566,7 @@ export function MarketPulsePostsTable() {
             Previous
           </button>
 
-          {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+          {visiblePageNumbers.map((page) => (
             <button
               key={page}
               type="button"
