@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { AdminPageIntro } from "@/components/ui/AdminPageIntro";
+import { getAdminSession } from "@/lib/auth/session";
+import { isSuperAdminRole } from "@/lib/auth/roles";
 
 export default async function SettingsAdminPage() {
+  const admin = await getAdminSession();
+
   return (
     <div className="grid gap-4">
       <AdminPageIntro
@@ -39,6 +43,36 @@ export default async function SettingsAdminPage() {
               </svg>
             </span>
           </Link>
+
+          {isSuperAdminRole(admin?.role) ? (
+            <Link
+              href="/settings/admin-users"
+              className="group flex items-center justify-between gap-4 rounded-[1.2rem] border border-[color:var(--color-border)] bg-white/90 px-4 py-4 transition-colors hover:bg-[var(--color-background)]"
+            >
+              <div className="min-w-0">
+                <p className="text-[0.96rem] font-semibold text-[var(--color-text)]">Admin users</p>
+                <p className="mt-1 text-[0.84rem] leading-6 text-[var(--color-text-soft)]">
+                  Create admin accounts, assign roles, and control who has full panel access.
+                </p>
+              </div>
+
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--color-border)] bg-white text-[var(--color-brand-strong)] transition-transform group-hover:translate-x-0.5">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M7 5.5 11.5 10 7 14.5" />
+                  <path d="M8.5 10h6" />
+                </svg>
+              </span>
+            </Link>
+          ) : null}
         </div>
       </section>
     </div>

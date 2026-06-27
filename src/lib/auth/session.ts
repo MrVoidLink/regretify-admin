@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentAdmin } from "@/lib/auth/adminApi";
+import { isSuperAdminRole } from "@/lib/auth/roles";
 import type { AdminProfile } from "@/types/admin";
 
 const SESSION_COOKIE_NAME = "regretify_admin_session";
@@ -19,7 +20,7 @@ function getBypassAdminSession(): AdminProfile {
   return {
     id: "dev-admin-bypass",
     email: "dev-admin@regretify.local",
-    role: "admin",
+    role: "super_admin",
     status: "active",
     username: "devadmin",
     displayName: "Dev Admin",
@@ -79,6 +80,16 @@ export async function requireAdminSession() {
 
   if (!session) {
     redirect("/login");
+  }
+
+  return session;
+}
+
+export async function requireSuperAdminSession() {
+  const session = await requireAdminSession();
+
+  if (!isSuperAdminRole(session.role)) {
+    redirect("/settings");
   }
 
   return session;

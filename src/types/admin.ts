@@ -7,7 +7,7 @@ export type AdminNavigationItem = {
   }>;
 };
 
-export type AdminRole = "admin" | (string & {});
+export type AdminRole = "super_admin" | "author" | (string & {});
 
 export type AdminProfile = {
   id: string;
@@ -22,3 +22,5 @@ export type AdminProfile = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type ManagedAdminUser = AdminProfile;
