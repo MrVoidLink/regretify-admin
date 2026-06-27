@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
   badgeOptions,
@@ -27,8 +28,42 @@ import {
 import { useOperatorAccountProfile } from "@/hooks/useOperatorAccountProfile";
 import { buildOperatorPreviewProfile } from "@/lib/operator-profile";
 
-export function MarketPulseComposer({ admin }: MarketPulseComposerProps) {
+type MarketPulseApiPost = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  category: string;
+  badge: string;
+  accent: string;
+  summaryHeading: string;
+  bodyHtml: string;
+  tags: string;
+  status: "draft" | "published";
+};
+
+function mapApiPostToComposerState(post: MarketPulseApiPost): ComposerState {
+  return {
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    category: post.category,
+    badge: post.badge,
+    accent: post.accent,
+    summaryHeading: post.summaryHeading,
+    bodyHtml: post.bodyHtml,
+    tags: post.tags,
+  };
+}
+
+export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps) {
+  const router = useRouter();
   const [draft, setDraft] = useState<ComposerState>(initialComposerState);
+  const [currentPostId, setCurrentPostId] = useState(postId ?? null);
+  const [isLoadingPost, setIsLoadingPost] = useState(Boolean(postId));
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [uploadedHeroImageSrc, setUploadedHeroImageSrc] = useState<string | null>(null);
   const [uploadedHeroImageName, setUploadedHeroImageName] = useState("Default hero artwork");
   const [uploadedStoryHeroImageSrc, setUploadedStoryHeroImageSrc] = useState<string | null>(null);
@@ -39,6 +74,46 @@ export function MarketPulseComposer({ admin }: MarketPulseComposerProps) {
   const storyHeroInputRef = useRef<HTMLInputElement | null>(null);
   const [operatorAccount] = useOperatorAccountProfile(admin);
   const operator = buildOperatorPreviewProfile(operatorAccount);
+
+  useEffect(() => {
+    if (!postId) {
+      return;
+    }
+
+    let isActive = true;
+
+    async function loadPost() {
+      setIsLoadingPost(true);
+      setSubmitError("");
+
+      const response = await fetch(`/api/admin/market-pulse/posts/${postId}`, {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      if (!isActive) {
+        return;
+      }
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;
+        setSubmitError(payload?.message ?? payload?.error ?? "Could not load this post.");
+        setIsLoadingPost(false);
+        return;
+      }
+
+      const post = (await response.json()) as MarketPulseApiPost;
+      setDraft(mapApiPostToComposerState(post));
+      setCurrentPostId(post.id);
+      setIsLoadingPost(false);
+    }
+
+    void loadPost();
+
+    return () => {
+      isActive = false;
+    };
+  }, [postId]);
 
   useEffect(() => {
     return () => {
@@ -54,6 +129,135 @@ export function MarketPulseComposer({ admin }: MarketPulseComposerProps) {
 
   function setField<K extends keyof ComposerState>(field: K, value: ComposerState[K]) {
     setDraft((current) => ({ ...current, [field]: value }));
+    setSubmitMessage("");
+    setSubmitError("");
+  }
+
+  async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
+    const response = await fetch(input, init);
+    const payload = (await response.json().catch(() => null)) as
+      | (T & { message?: string; error?: string })
+      | null;
+
+    if (!response.ok) {
+      throw new Error(payload?.message ?? payload?.error ?? "Request failed.");
+    }
+
+    return payload as T;
+  }
+
+  async function saveDraft() {
+    setIsSubmitting(true);
+    setSubmitMessage("");
+    setSubmitError("");
+
+    try {
+      const payload = {
+        title: draft.title,
+        slug: draft.slug,
+        excerpt: draft.excerpt,
+        category: draft.category,
+        badge: draft.badge,
+        accent: draft.accent,
+        summaryHeading: draft.summaryHeading,
+        bodyHtml: draft.bodyHtml,
+        tags: draft.tags,
+      };
+
+      const savedPost = currentPostId
+        ? await requestJson<MarketPulseApiPost>(`/api/admin/market-pulse/posts/${currentPostId}`, {
+            method: "PATCH",
+            headers: {
+              "content-type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          })
+        : await requestJson<MarketPulseApiPost>("/api/admin/market-pulse/posts", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              mode: "draft",
+              payload,
+            }),
+          });
+
+      setCurrentPostId(savedPost.id);
+      setSubmitMessage("Draft saved.");
+
+      if (!currentPostId) {
+        router.replace(`/market-pulse/create?post=${savedPost.id}`);
+      }
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Could not save draft.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function publishPost() {
+    setIsSubmitting(true);
+    setSubmitMessage("");
+    setSubmitError("");
+
+    try {
+      const payload = {
+        title: draft.title,
+        slug: draft.slug,
+        excerpt: draft.excerpt,
+        category: draft.category,
+        badge: draft.badge,
+        accent: draft.accent,
+        summaryHeading: draft.summaryHeading,
+        bodyHtml: draft.bodyHtml,
+        tags: draft.tags,
+      };
+
+      if (currentPostId) {
+        await requestJson<MarketPulseApiPost>(`/api/admin/market-pulse/posts/${currentPostId}`, {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const publishedPost = await requestJson<MarketPulseApiPost>(
+          `/api/admin/market-pulse/posts/${currentPostId}/publish`,
+          {
+            method: "POST",
+          },
+        );
+
+        setCurrentPostId(publishedPost.id);
+      } else {
+        const publishedPost = await requestJson<MarketPulseApiPost>(
+          "/api/admin/market-pulse/posts",
+          {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              mode: "published",
+              payload,
+            }),
+          },
+        );
+
+        setCurrentPostId(publishedPost.id);
+        router.replace(`/market-pulse/create?post=${publishedPost.id}`);
+      }
+
+      setSubmitMessage("Post published.");
+      router.push("/market-pulse/posts");
+      router.refresh();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Could not publish post.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function handleHeroImageChange(event: ChangeEvent<HTMLInputElement>) {
@@ -131,6 +335,19 @@ export function MarketPulseComposer({ admin }: MarketPulseComposerProps) {
     .map((tag) => tag.trim())
     .filter(Boolean);
   const outlineLinks = extractOutlineLinksFromBodyHtml(draft.bodyHtml);
+
+  if (isLoadingPost) {
+    return (
+      <section className="space-y-4">
+        <SectionCard
+          title="Loading post"
+          description="Fetching the saved Market Pulse draft before the composer initializes."
+        >
+          <p className="text-[0.92rem] text-[var(--color-text-soft)]">Loading editor data...</p>
+        </SectionCard>
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-4">
@@ -341,21 +558,33 @@ export function MarketPulseComposer({ admin }: MarketPulseComposerProps) {
         description="For now this flow only prepares a post for direct publishing."
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[0.84rem] leading-6 text-[var(--color-text-soft)]">
-            Views and likes are preview-only. Publish time and author card are injected automatically at publish time.
-          </p>
+          <div className="space-y-1">
+            <p className="text-[0.84rem] leading-6 text-[var(--color-text-soft)]">
+              Views and likes are preview-only. Publish time and author card are injected automatically at publish time.
+            </p>
+            {submitMessage ? (
+              <p className="text-[0.82rem] font-medium text-emerald-700">{submitMessage}</p>
+            ) : null}
+            {submitError ? (
+              <p className="text-[0.82rem] font-medium text-rose-600">{submitError}</p>
+            ) : null}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
+              onClick={() => void saveDraft()}
+              disabled={isSubmitting || isLoadingPost}
               className="inline-flex min-h-11 items-center rounded-full border border-[color:var(--color-border)] bg-white px-5 text-[0.92rem] font-semibold text-[var(--color-text)] transition-colors hover:bg-zinc-50"
             >
-              Save draft
+              {isSubmitting ? "Saving..." : "Save draft"}
             </button>
             <button
               type="button"
+              onClick={() => void publishPost()}
+              disabled={isSubmitting || isLoadingPost}
               className="inline-flex min-h-11 items-center rounded-full bg-[linear-gradient(180deg,var(--color-brand)_0%,var(--color-brand-strong)_100%)] px-5 text-[0.92rem] font-semibold text-white shadow-[0_14px_26px_rgba(90,40,223,0.24)] transition-transform hover:-translate-y-0.5"
             >
-              Publish post
+              {isSubmitting ? "Publishing..." : "Publish post"}
             </button>
           </div>
         </div>

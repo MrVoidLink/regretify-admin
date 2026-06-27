@@ -21,12 +21,14 @@ import type { AdminProfile } from "@/types/admin";
 export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null }) {
   const [storedProfile] = useOperatorAccountProfile(admin);
   const [draft, setDraft] = useState(storedProfile);
-  const [saveState, setSaveState] = useState<"idle" | "saved">("idle");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveMessage, setSaveMessage] = useState("");
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   function setField<K extends keyof typeof draft>(field: K, value: (typeof draft)[K]) {
     setDraft((current) => ({ ...current, [field]: value }));
     setSaveState("idle");
+    setSaveMessage("");
   }
 
   function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
@@ -49,15 +51,39 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
     reader.readAsDataURL(file);
   }
 
-  function handleSave() {
+  async function handleSave() {
+    setSaveState("saving");
+    setSaveMessage("");
+
+    const response = await fetch("/api/admin/auth/me/profile", {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        username: draft.username,
+        displayName: draft.displayName,
+        authorRole: draft.authorRole,
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { message?: string } | null;
+      setSaveState("error");
+      setSaveMessage(payload?.message ?? "Could not save operator profile.");
+      return;
+    }
+
     saveOperatorAccountProfile(draft);
     setSaveState("saved");
+    setSaveMessage("Profile saved. Username, display name, and author line are now persisted.");
   }
 
   function handleReset() {
     clearOperatorAccountProfile();
     setDraft(getDefaultOperatorAccountProfile(admin));
     setSaveState("idle");
+    setSaveMessage("");
 
     if (avatarInputRef.current) {
       avatarInputRef.current.value = "";
@@ -182,8 +208,12 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--color-border)] pt-4">
             <p className="text-[0.82rem] text-[var(--color-text-soft)]">
               {saveState === "saved"
-                ? "Saved locally for UI preview. Backend persistence comes next."
-                : "Save these values now so the story preview and composer use them."}
+                ? saveMessage
+                : saveState === "saving"
+                  ? "Saving operator profile..."
+                  : saveState === "error"
+                    ? saveMessage
+                    : "Save these values now so the story preview and composer use them."}
             </p>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -197,9 +227,10 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
               <button
                 type="button"
                 onClick={handleSave}
+                disabled={saveState === "saving"}
                 className="inline-flex min-h-10 items-center rounded-full bg-[linear-gradient(180deg,var(--color-brand)_0%,var(--color-brand-strong)_100%)] px-4 text-[0.84rem] font-semibold text-white shadow-[0_10px_22px_rgba(90,40,223,0.2)]"
               >
-                Save profile
+                {saveState === "saving" ? "Saving..." : "Save profile"}
               </button>
             </div>
           </div>

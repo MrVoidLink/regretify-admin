@@ -1,6 +1,6 @@
 import type { AdminProfile } from "@/types/admin";
 
-function getCoreApiBaseUrl() {
+export function getCoreApiBaseUrl() {
   const value = process.env.NEXT_PUBLIC_CORE_API_BASE_URL?.trim();
 
   if (!value) {
@@ -8,6 +8,25 @@ function getCoreApiBaseUrl() {
   }
 
   return value.replace(/\/$/, "");
+}
+
+export async function fetchCoreWithAdminAccessToken(
+  accessToken: string,
+  path: string,
+  init?: RequestInit,
+) {
+  const headers = new Headers(init?.headers);
+  headers.set("authorization", `Bearer ${accessToken}`);
+
+  if (init?.body && !headers.has("content-type")) {
+    headers.set("content-type", "application/json");
+  }
+
+  return fetch(`${getCoreApiBaseUrl()}${path}`, {
+    ...init,
+    headers,
+    cache: "no-store",
+  });
 }
 
 export async function loginAgainstCore(email: string, password: string) {

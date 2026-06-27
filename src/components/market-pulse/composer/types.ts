@@ -28,4 +28,5 @@ export type StoryOutlineLink = {
 
 export type MarketPulseComposerProps = {
   admin: AdminProfile | null;
+  postId?: string;
 };
