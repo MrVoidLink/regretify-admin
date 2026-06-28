@@ -6,14 +6,17 @@ import { editorEmojiOptions } from "@/components/market-pulse/composer/config";
 function EditorToolbarButton({
   label,
   onClick,
+  disabled = false,
 }: {
   label: string;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className="inline-flex min-h-9 items-center rounded-full border border-[color:var(--color-border)] bg-white px-3 text-[0.76rem] font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-brand-soft)]"
     >
       {label}
@@ -24,9 +27,13 @@ function EditorToolbarButton({
 export function RichTextEditor({
   value,
   onChange,
+  onUploadImage,
+  isUploadingImage = false,
 }: {
   value: string;
   onChange: (nextValue: string) => void;
+  onUploadImage?: (file: File) => Promise<{ src: string; alt: string }>;
+  isUploadingImage?: boolean;
 }) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -89,10 +96,25 @@ export function RichTextEditor({
     );
   }
 
-  function handleEditorImageUpload(event: ChangeEvent<HTMLInputElement>) {
+  async function handleEditorImageUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
     if (!file) {
+      return;
+    }
+    event.target.value = "";
+
+    if (onUploadImage) {
+      try {
+        const uploadedImage = await onUploadImage(file);
+
+        insertHtml(
+          `<figure><img src="${uploadedImage.src}" alt="${uploadedImage.alt}" style="width:100%;border-radius:1rem;margin:0;" /></figure>`,
+        );
+      } catch {
+        return;
+      }
+
       return;
     }
 
@@ -111,7 +133,6 @@ export function RichTextEditor({
     };
 
     reader.readAsDataURL(file);
-    event.target.value = "";
   }
 
   return (
@@ -132,8 +153,9 @@ export function RichTextEditor({
         <EditorToolbarButton label="Link" onClick={handleAddLink} />
         <EditorToolbarButton label="Image URL" onClick={handleAddImageUrl} />
         <EditorToolbarButton
-          label="Upload Image"
+          label={isUploadingImage ? "Uploading image..." : "Upload Image"}
           onClick={() => imageInputRef.current?.click()}
+          disabled={isUploadingImage}
         />
         <EditorToolbarButton
           label={isEmojiPickerOpen ? "Close Emoji" : "Emoji"}
@@ -168,7 +190,7 @@ export function RichTextEditor({
         ref={imageInputRef}
         type="file"
         accept="image/png,image/jpeg,image/webp,image/avif"
-        onChange={handleEditorImageUpload}
+        onChange={(event) => void handleEditorImageUpload(event)}
         className="hidden"
       />
     </div>

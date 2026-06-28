@@ -40,7 +40,17 @@ type MarketPulseApiPost = {
   summaryHeading: string;
   bodyHtml: string;
   tags: string;
+  feedHeroAssetKey: string | null;
+  storyHeroAssetKey: string | null;
   status: "draft" | "published";
+};
+
+type UploadedPostAsset = {
+  kind: "feed-hero" | "story-hero" | "inline";
+  assetKey: string;
+  publicUrl: string;
+  contentType: string;
+  size: number;
 };
 
 function mapApiPostToComposerState(post: MarketPulseApiPost): ComposerState {
@@ -54,10 +64,13 @@ function mapApiPostToComposerState(post: MarketPulseApiPost): ComposerState {
     summaryHeading: post.summaryHeading,
     bodyHtml: post.bodyHtml,
     tags: post.tags,
+    feedHeroAssetKey: post.feedHeroAssetKey ?? "",
+    storyHeroAssetKey: post.storyHeroAssetKey ?? "",
   };
 }
 
 export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps) {
+  const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
   const router = useRouter();
   const [draft, setDraft] = useState<ComposerState>(initialComposerState);
   const [currentPostId, setCurrentPostId] = useState(postId ?? null);
@@ -66,6 +79,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
   const [submitMessage, setSubmitMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [successModalMessage, setSuccessModalMessage] = useState("");
+  const [isUploadingAsset, setIsUploadingAsset] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const [uploadedHeroImageSrc, setUploadedHeroImageSrc] = useState<string | null>(null);
   const [uploadedHeroImageName, setUploadedHeroImageName] = useState("Default hero artwork");
@@ -114,6 +128,10 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
       const post = (await response.json()) as MarketPulseApiPost;
       setDraft(mapApiPostToComposerState(post));
       setCurrentPostId(post.id);
+      setUploadedHeroImageName(post.feedHeroAssetKey ? "Saved hero image" : "Default hero artwork");
+      setUploadedStoryHeroImageName(
+        post.storyHeroAssetKey ? "Saved inside post hero image" : "Using feed hero image",
+      );
       setIsLoadingPost(false);
     }
 
@@ -191,6 +209,8 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
         summaryHeading: draft.summaryHeading,
         bodyHtml: draft.bodyHtml,
         tags: draft.tags,
+        feedHeroAssetKey: draft.feedHeroAssetKey || null,
+        storyHeroAssetKey: draft.storyHeroAssetKey || null,
       };
 
       const savedPost = currentPostId
@@ -237,6 +257,8 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
         summaryHeading: draft.summaryHeading,
         bodyHtml: draft.bodyHtml,
         tags: draft.tags,
+        feedHeroAssetKey: draft.feedHeroAssetKey || null,
+        storyHeroAssetKey: draft.storyHeroAssetKey || null,
       };
 
       if (currentPostId) {
@@ -288,17 +310,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
     if (!file) {
       return;
     }
-
-    const nextPreviewUrl = URL.createObjectURL(file);
-
-    setUploadedHeroImageSrc((current) => {
-      if (current?.startsWith("blob:")) {
-        URL.revokeObjectURL(current);
-      }
-
-      return nextPreviewUrl;
-    });
-    setUploadedHeroImageName(file.name);
+    void uploadHeroAsset(file, "feed-hero");
   }
 
   function handleStoryHeroImageChange(event: ChangeEvent<HTMLInputElement>) {
@@ -307,17 +319,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
     if (!file) {
       return;
     }
-
-    const nextPreviewUrl = URL.createObjectURL(file);
-
-    setUploadedStoryHeroImageSrc((current) => {
-      if (current?.startsWith("blob:")) {
-        URL.revokeObjectURL(current);
-      }
-
-      return nextPreviewUrl;
-    });
-    setUploadedStoryHeroImageName(file.name);
+    void uploadHeroAsset(file, "story-hero");
   }
 
   function resetHeroImage() {
@@ -328,6 +330,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
 
       return null;
     });
+    setField("feedHeroAssetKey", "");
     setUploadedHeroImageName("Default hero artwork");
 
     if (feedHeroInputRef.current) {
@@ -343,6 +346,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
 
       return null;
     });
+    setField("storyHeroAssetKey", "");
     setUploadedStoryHeroImageName("Using feed hero image");
 
     if (storyHeroInputRef.current) {
@@ -350,8 +354,146 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
     }
   }
 
-  const heroImageSrc = uploadedHeroImageSrc ?? defaultHeroImageSrc;
-  const storyHeroImageSrc = uploadedStoryHeroImageSrc ?? heroImageSrc;
+  async function ensureCurrentPostIdForAssetUpload() {
+    if (currentPostId) {
+      return currentPostId;
+    }
+
+    if (draft.title.trim().length < 3) {
+      throw new Error("First add a title so a draft can be created for image uploads.");
+    }
+
+    if (!slugPattern.test(draft.slug.trim())) {
+      throw new Error("First set a valid slug so a draft can be created for image uploads.");
+    }
+
+    const createdDraft = await requestJson<MarketPulseApiPost>("/api/admin/market-pulse/posts", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        mode: "draft",
+        payload: {
+          title: draft.title,
+          slug: draft.slug,
+          excerpt: draft.excerpt,
+          category: draft.category,
+          badge: draft.badge,
+          accent: draft.accent,
+          summaryHeading: draft.summaryHeading,
+          bodyHtml: draft.bodyHtml,
+          tags: draft.tags,
+          feedHeroAssetKey: draft.feedHeroAssetKey || null,
+          storyHeroAssetKey: draft.storyHeroAssetKey || null,
+        },
+      }),
+    });
+
+    setCurrentPostId(createdDraft.id);
+    setSubmitError("");
+    setSubmitMessage("Draft auto-saved so image uploads can attach to this post.");
+
+    return createdDraft.id;
+  }
+
+  async function uploadPostAsset(
+    file: File,
+    kind: UploadedPostAsset["kind"],
+  ) {
+    const targetPostId = await ensureCurrentPostIdForAssetUpload();
+    const formData = new FormData();
+
+    formData.append("kind", kind);
+    formData.append("file", file, file.name);
+
+    return requestJson<UploadedPostAsset>(
+      `/api/admin/market-pulse/posts/${targetPostId}/assets`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+  }
+
+  async function uploadHeroAsset(
+    file: File,
+    kind: "feed-hero" | "story-hero",
+  ) {
+    setIsUploadingAsset(true);
+    setSubmitMessage("");
+    setSubmitError("");
+
+    try {
+      const uploadedAsset = await uploadPostAsset(file, kind);
+
+      if (kind === "feed-hero") {
+        setField("feedHeroAssetKey", uploadedAsset.publicUrl);
+        setUploadedHeroImageSrc((current) => {
+          if (current?.startsWith("blob:")) {
+            URL.revokeObjectURL(current);
+          }
+
+          return uploadedAsset.publicUrl;
+        });
+        setUploadedHeroImageName(file.name);
+        setSubmitMessage("Feed hero image uploaded to R2.");
+      } else {
+        setField("storyHeroAssetKey", uploadedAsset.publicUrl);
+        setUploadedStoryHeroImageSrc((current) => {
+          if (current?.startsWith("blob:")) {
+            URL.revokeObjectURL(current);
+          }
+
+          return uploadedAsset.publicUrl;
+        });
+        setUploadedStoryHeroImageName(file.name);
+        setSubmitMessage("Inside post hero image uploaded to R2.");
+      }
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Could not upload image.",
+      );
+    } finally {
+      setIsUploadingAsset(false);
+
+      if (kind === "feed-hero" && feedHeroInputRef.current) {
+        feedHeroInputRef.current.value = "";
+      }
+
+      if (kind === "story-hero" && storyHeroInputRef.current) {
+        storyHeroInputRef.current.value = "";
+      }
+    }
+  }
+
+  async function handleInlineImageUpload(file: File) {
+    setIsUploadingAsset(true);
+    setSubmitMessage("");
+    setSubmitError("");
+
+    try {
+      const uploadedAsset = await uploadPostAsset(file, "inline");
+      setSubmitMessage("Inline content image uploaded to R2.");
+
+      return {
+        src: uploadedAsset.publicUrl,
+        alt: file.name.replace(/\.[^.]+$/, ""),
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not upload inline image.";
+      setSubmitError(message);
+      throw error;
+    } finally {
+      setIsUploadingAsset(false);
+    }
+  }
+
+  const heroImageSrc =
+    (uploadedHeroImageSrc ?? draft.feedHeroAssetKey) || defaultHeroImageSrc;
+  const storyHeroImageSrc =
+    (uploadedStoryHeroImageSrc ?? draft.storyHeroAssetKey) || heroImageSrc;
   const tagList = draft.tags
     .split(",")
     .map((tag) => tag.trim())
@@ -470,6 +612,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/avif"
                   onChange={handleHeroImageChange}
+                  disabled={isUploadingAsset}
                   className={fileInputClassName}
                 />
               </Field>
@@ -488,7 +631,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
                         Recommended size: 1128 x 1200 px
                       </p>
                     </div>
-                    {uploadedHeroImageSrc ? (
+                    {draft.feedHeroAssetKey || uploadedHeroImageSrc ? (
                       <button
                         type="button"
                         onClick={resetHeroImage}
@@ -561,6 +704,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/avif"
                 onChange={handleStoryHeroImageChange}
+                disabled={isUploadingAsset}
                 className={fileInputClassName}
               />
               <div className="rounded-[1.2rem] border border-dashed border-[color:var(--color-border)] bg-white/80 px-4 py-3">
@@ -576,7 +720,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
                       Recommended size: 1625 x 968 px
                     </p>
                   </div>
-                  {uploadedStoryHeroImageSrc ? (
+                  {draft.storyHeroAssetKey || uploadedStoryHeroImageSrc ? (
                     <button
                       type="button"
                       onClick={resetStoryHeroImage}
@@ -594,6 +738,8 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
             <RichTextEditor
               value={draft.bodyHtml}
               onChange={(nextValue) => setField("bodyHtml", nextValue)}
+              onUploadImage={handleInlineImageUpload}
+              isUploadingImage={isUploadingAsset}
             />
           </Field>
 
@@ -627,7 +773,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
             <button
               type="button"
               onClick={() => void saveDraft()}
-              disabled={isSubmitting || isLoadingPost}
+              disabled={isSubmitting || isLoadingPost || isUploadingAsset}
               className="inline-flex min-h-11 items-center rounded-full border border-[color:var(--color-border)] bg-white px-5 text-[0.92rem] font-semibold text-[var(--color-text)] transition-colors hover:bg-zinc-50"
             >
               {isSubmitting ? "Saving..." : "Save draft"}
@@ -635,7 +781,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
             <button
               type="button"
               onClick={() => void publishPost()}
-              disabled={isSubmitting || isLoadingPost}
+              disabled={isSubmitting || isLoadingPost || isUploadingAsset}
               className="inline-flex min-h-11 items-center rounded-full bg-[linear-gradient(180deg,var(--color-brand)_0%,var(--color-brand-strong)_100%)] px-5 text-[0.92rem] font-semibold text-white shadow-[0_14px_26px_rgba(90,40,223,0.24)] transition-transform hover:-translate-y-0.5"
             >
               {isSubmitting ? "Publishing..." : "Publish post"}

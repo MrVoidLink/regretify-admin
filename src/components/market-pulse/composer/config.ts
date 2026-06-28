@@ -65,4 +65,6 @@ export const initialComposerState: ComposerState = {
   summaryHeading: "Bitcoin jumped after whale chatter, but positioning did most of the work",
   bodyHtml: initialBodyHtml,
   tags: "#Bitcoin, #Whales, #CryptoNews, #MarketPulse",
+  feedHeroAssetKey: "",
+  storyHeroAssetKey: "",
 };

@@ -10,6 +10,8 @@ export type ComposerState = {
   summaryHeading: string;
   bodyHtml: string;
   tags: string;
+  feedHeroAssetKey: string;
+  storyHeroAssetKey: string;
 };
 
 export type OperatorPreviewProfile = {
