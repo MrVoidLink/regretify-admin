@@ -21,6 +21,7 @@ import type { AdminProfile } from "@/types/admin";
 export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null }) {
   const [storedProfile] = useOperatorAccountProfile(admin);
   const [draft, setDraft] = useState(storedProfile);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveMessage, setSaveMessage] = useState("");
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
@@ -37,6 +38,8 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
     if (!file) {
       return;
     }
+
+    setAvatarFile(file);
 
     const reader = new FileReader();
 
@@ -55,6 +58,33 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
     setSaveState("saving");
     setSaveMessage("");
 
+    let nextAvatarSrc = draft.avatarSrc;
+
+    if (avatarFile) {
+      const avatarFormData = new FormData();
+      avatarFormData.append("file", avatarFile, avatarFile.name);
+
+      const avatarResponse = await fetch("/api/admin/auth/me/avatar", {
+        method: "POST",
+        body: avatarFormData,
+      });
+
+      const avatarPayload = (await avatarResponse.json().catch(() => null)) as
+        | { message?: string; avatarUrl?: string | null; avatarAssetKey?: string | null }
+        | null;
+
+      if (!avatarResponse.ok) {
+        setSaveState("error");
+        setSaveMessage(avatarPayload?.message ?? "Could not upload avatar image.");
+        return;
+      }
+
+      nextAvatarSrc =
+        avatarPayload?.avatarUrl?.trim() ||
+        avatarPayload?.avatarAssetKey?.trim() ||
+        nextAvatarSrc;
+    }
+
     const response = await fetch("/api/admin/auth/me/profile", {
       method: "PATCH",
       headers: {
@@ -63,6 +93,7 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
       body: JSON.stringify({
         username: draft.username,
         displayName: draft.displayName,
+        avatarAssetKey: nextAvatarSrc ? undefined : null,
       }),
     });
 
@@ -73,14 +104,22 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
       return;
     }
 
-    saveOperatorAccountProfile(draft);
+    const savedProfile = {
+      ...draft,
+      avatarSrc: nextAvatarSrc,
+    };
+
+    setDraft(savedProfile);
+    setAvatarFile(null);
+    saveOperatorAccountProfile(savedProfile);
     setSaveState("saved");
-    setSaveMessage("Profile saved. Username and display name are now persisted.");
+    setSaveMessage("Profile saved. Author identity is now persisted.");
   }
 
   function handleReset() {
     clearOperatorAccountProfile();
     setDraft(getDefaultOperatorAccountProfile(admin));
+    setAvatarFile(null);
     setSaveState("idle");
     setSaveMessage("");
 
@@ -176,6 +215,7 @@ export function OperatorAccountSettings({ admin }: { admin: AdminProfile | null 
                       type="button"
                       onClick={() => {
                         setField("avatarSrc", null);
+                        setAvatarFile(null);
 
                         if (avatarInputRef.current) {
                           avatarInputRef.current.value = "";
