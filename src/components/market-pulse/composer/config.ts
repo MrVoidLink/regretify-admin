@@ -61,7 +61,6 @@ export const initialComposerState: ComposerState = {
   excerpt: "One big wallet, one loud rumor, and the entire feed forgets how to act.",
   category: "Crypto",
   badge: "Breaking",
-  accent: "BTC +7.2%",
   summaryHeading: "Bitcoin jumped after whale chatter, but positioning did most of the work",
   bodyHtml: initialBodyHtml,
   tags: "#Bitcoin, #Whales, #CryptoNews, #MarketPulse",

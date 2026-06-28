@@ -6,7 +6,6 @@ export type ComposerState = {
   excerpt: string;
   category: string;
   badge: string;
-  accent: string;
   summaryHeading: string;
   bodyHtml: string;
   tags: string;

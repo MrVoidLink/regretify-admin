@@ -36,7 +36,6 @@ type MarketPulseApiPost = {
   excerpt: string;
   category: string;
   badge: string;
-  accent: string;
   summaryHeading: string;
   bodyHtml: string;
   tags: string;
@@ -60,7 +59,6 @@ function mapApiPostToComposerState(post: MarketPulseApiPost): ComposerState {
     excerpt: post.excerpt,
     category: post.category,
     badge: post.badge,
-    accent: post.accent,
     summaryHeading: post.summaryHeading,
     bodyHtml: post.bodyHtml,
     tags: post.tags,
@@ -205,7 +203,6 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
         excerpt: draft.excerpt,
         category: draft.category,
         badge: draft.badge,
-        accent: draft.accent,
         summaryHeading: draft.summaryHeading,
         bodyHtml: draft.bodyHtml,
         tags: draft.tags,
@@ -253,7 +250,6 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
         excerpt: draft.excerpt,
         category: draft.category,
         badge: draft.badge,
-        accent: draft.accent,
         summaryHeading: draft.summaryHeading,
         bodyHtml: draft.bodyHtml,
         tags: draft.tags,
@@ -400,7 +396,6 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
           excerpt: draft.excerpt,
           category: draft.category,
           badge: draft.badge,
-          accent: draft.accent,
           summaryHeading: draft.summaryHeading,
           bodyHtml: draft.bodyHtml,
           tags: draft.tags,
@@ -616,14 +611,6 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
                     </option>
                   ))}
                 </select>
-              </Field>
-
-              <Field label="Accent">
-                <input
-                  value={draft.accent}
-                  onChange={(event) => setField("accent", event.target.value)}
-                  className={textInputClassName()}
-                />
               </Field>
 
               <Field label="Hero Image">
