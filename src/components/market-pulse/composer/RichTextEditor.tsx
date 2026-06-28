@@ -37,6 +37,7 @@ export function RichTextEditor({
 }) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const selectionRangeRef = useRef<Range | null>(null);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
 
   useEffect(() => {
@@ -57,15 +58,75 @@ export function RichTextEditor({
     editorRef.current?.focus();
   }
 
+  function saveSelectionRange() {
+    const selection = window.getSelection();
+    const editor = editorRef.current;
+
+    if (!selection || !editor || selection.rangeCount === 0) {
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+
+    if (!editor.contains(range.commonAncestorContainer)) {
+      return;
+    }
+
+    selectionRangeRef.current = range.cloneRange();
+  }
+
+  function placeCaretAtEnd() {
+    const editor = editorRef.current;
+
+    if (!editor) {
+      return;
+    }
+
+    const range = document.createRange();
+    const selection = window.getSelection();
+
+    range.selectNodeContents(editor);
+    range.collapse(false);
+
+    if (!selection) {
+      return;
+    }
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+    selectionRangeRef.current = range.cloneRange();
+  }
+
+  function restoreSelectionRange() {
+    const selection = window.getSelection();
+
+    if (!selection) {
+      return;
+    }
+
+    selection.removeAllRanges();
+
+    if (selectionRangeRef.current) {
+      selection.addRange(selectionRangeRef.current);
+      return;
+    }
+
+    placeCaretAtEnd();
+  }
+
   function runCommand(command: string, commandValue?: string) {
     focusEditor();
+    restoreSelectionRange();
     document.execCommand(command, false, commandValue);
+    saveSelectionRange();
     syncEditorHtml();
   }
 
   function insertHtml(html: string) {
     focusEditor();
+    restoreSelectionRange();
     document.execCommand("insertHTML", false, html);
+    saveSelectionRange();
     syncEditorHtml();
   }
 
@@ -154,7 +215,10 @@ export function RichTextEditor({
         <EditorToolbarButton label="Image URL" onClick={handleAddImageUrl} />
         <EditorToolbarButton
           label={isUploadingImage ? "Uploading image..." : "Upload Image"}
-          onClick={() => imageInputRef.current?.click()}
+          onClick={() => {
+            saveSelectionRange();
+            imageInputRef.current?.click();
+          }}
           disabled={isUploadingImage}
         />
         <EditorToolbarButton
@@ -183,6 +247,9 @@ export function RichTextEditor({
         contentEditable
         suppressContentEditableWarning
         onInput={syncEditorHtml}
+        onKeyUp={saveSelectionRange}
+        onMouseUp={saveSelectionRange}
+        onBlur={saveSelectionRange}
         className="min-h-[20rem] px-4 py-4 text-[0.95rem] leading-7 text-zinc-800 outline-none [&_blockquote]:rounded-[1rem] [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--color-brand)] [&_blockquote]:bg-[var(--color-brand-soft)] [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:text-zinc-700 [&_figure]:my-5 [&_h2]:type-title [&_h2]:mb-4 [&_h2]:mt-6 [&_h2]:text-[1.35rem] [&_h2]:font-semibold [&_h2]:text-zinc-950 [&_img]:w-full [&_img]:rounded-[1rem] [&_img]:object-cover [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-4"
       />
 
