@@ -310,6 +310,16 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
     if (!file) {
       return;
     }
+
+    const localPreviewUrl = URL.createObjectURL(file);
+    setUploadedHeroImageSrc((current) => {
+      if (current?.startsWith("blob:")) {
+        URL.revokeObjectURL(current);
+      }
+
+      return localPreviewUrl;
+    });
+    setUploadedHeroImageName(file.name);
     void uploadHeroAsset(file, "feed-hero");
   }
 
@@ -319,6 +329,16 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
     if (!file) {
       return;
     }
+
+    const localPreviewUrl = URL.createObjectURL(file);
+    setUploadedStoryHeroImageSrc((current) => {
+      if (current?.startsWith("blob:")) {
+        URL.revokeObjectURL(current);
+      }
+
+      return localPreviewUrl;
+    });
+    setUploadedStoryHeroImageName(file.name);
     void uploadHeroAsset(file, "story-hero");
   }
 
