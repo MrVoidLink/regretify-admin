@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { createPortal } from "react-dom";
 import {
   badgeOptions,
   categoryOptions,
@@ -65,6 +66,7 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
   const [submitMessage, setSubmitMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [successModalMessage, setSuccessModalMessage] = useState("");
+  const [hasMounted, setHasMounted] = useState(false);
   const [uploadedHeroImageSrc, setUploadedHeroImageSrc] = useState<string | null>(null);
   const [uploadedHeroImageName, setUploadedHeroImageName] = useState("Default hero artwork");
   const [uploadedStoryHeroImageSrc, setUploadedStoryHeroImageSrc] = useState<string | null>(null);
@@ -77,6 +79,10 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
   const operator = buildOperatorPreviewProfile(operatorAccount);
   const fileInputClassName =
     "min-h-11 w-full min-w-0 rounded-[1rem] border border-[color:var(--color-border)] bg-white px-4 py-3 text-[0.9rem] text-[var(--color-text)] file:mr-3 file:rounded-full file:border-0 file:bg-[var(--color-brand-soft)] file:px-3.5 file:py-2 file:text-[0.82rem] file:font-medium file:text-[var(--color-brand-strong)]";
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!postId) {
@@ -351,24 +357,9 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
     .map((tag) => tag.trim())
     .filter(Boolean);
   const outlineLinks = extractOutlineLinksFromBodyHtml(draft.bodyHtml);
-
-  if (isLoadingPost) {
-    return (
-      <section className="space-y-4">
-        <SectionCard
-          title="Loading post"
-          description="Fetching the saved Market Pulse draft before the composer initializes."
-        >
-          <p className="text-[0.92rem] text-[var(--color-text-soft)]">Loading editor data...</p>
-        </SectionCard>
-      </section>
-    );
-  }
-
-  return (
-    <section className="space-y-4">
-      {successModalMessage ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(10,10,16,0.45)] px-4">
+  const successModal = hasMounted && successModalMessage
+    ? createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(10,10,16,0.45)] px-4">
           <div className="w-full max-w-md rounded-[1.6rem] border border-[color:var(--color-border)] bg-white p-6 shadow-[0_24px_60px_rgba(24,24,27,0.18)]">
             <p className="text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[var(--color-brand-strong)]">
               Success
@@ -392,8 +383,27 @@ export function MarketPulseComposer({ admin, postId }: MarketPulseComposerProps)
               </button>
             </div>
           </div>
-        </div>
-      ) : null}
+        </div>,
+        document.body,
+      )
+    : null;
+
+  if (isLoadingPost) {
+    return (
+      <section className="space-y-4">
+        <SectionCard
+          title="Loading post"
+          description="Fetching the saved Market Pulse draft before the composer initializes."
+        >
+          <p className="text-[0.92rem] text-[var(--color-text-soft)]">Loading editor data...</p>
+        </SectionCard>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-4">
+      {successModal}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
         <div className="min-w-0 space-y-4">
